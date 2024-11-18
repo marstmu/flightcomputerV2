@@ -8,11 +8,13 @@ lps = LPS22(i2c)
 
 while True:
     try:
-        temperature, pressure = lps.get()
+        temperature, pressure_hPa = lps.get()
+        pressure_atm = pressure_hPa / 1013.25
+        
         print("Temperature: {:.2f} °C".format(temperature))
-        print("Pressure: {:.2f} hPa".format(pressure))
+        print("Pressure: {:.2f} hPa".format(pressure_hPa))
+        print("Pressure: {:.5f} atm".format(pressure_atm))
     except Exception as e:
         print("Error reading from sensor:", e)
     
-    sleep(1)
-
+    sleep(0.1)
