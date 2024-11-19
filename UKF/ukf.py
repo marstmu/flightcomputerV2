@@ -146,17 +146,5 @@ class UnscentedKalmanFilter:
         # update bias
         self.bias = [self.bias[i] + update[3 + i] for i in range(3)]
 
-# example usage
-ukf = UnscentedKalmanFilter()
-
-# simulated data
-dt = 0.01
-gyro = [0.01, -0.02, 0.005]  # example gyro readings
-accel = [0.0, 0.0, 9.81]  # example accel readings (gravity aligned)
-mag = [0.3, 0.4, 0.5]  # example magnetometer readings
-
-ukf.predict(dt, gyro)
-ukf.update(accel, mag)
-
 print("Quaternion:", ukf.q)
 print("Gyroscope Bias:", ukf.bias)
