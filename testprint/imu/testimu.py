@@ -14,8 +14,8 @@ def main():
             accel = read_accel_data()
             gyro = read_gyro_data()
 
-            print("Accel: X={:5.2f} m/s², Y={:5.2f} m/s², Z={:5.2f} m/s²".format(accel[0], accel[1], accel[2]))
-            print("Gyro: X={:7.2f} rad/s, Y={:7.2f} rad/s, Z={:7.2f} rad/s".format(gyro[0], gyro[1], gyro[2]))
+            print("Accel: X={:5.2f} g, Y={:5.2f} g, Z={:5.2f} g".format(accel[0], accel[1], accel[2]))
+            print("Gyro: X={:7.2f} deg/s, Y={:7.2f} deg/s, Z={:7.2f} deg/s".format(gyro[0], gyro[1], gyro[2]))
             print("Temp: {:4.2f}".format((read_temp() / 128) + 25))            
             time.sleep(0.05)
     else:
