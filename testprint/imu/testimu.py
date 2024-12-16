@@ -7,8 +7,8 @@ def main():
         configure_sensor()
 
         # Set accelerometer and gyroscope scales
-        set_accel_scale(1)  # ±4g
-        set_gyro_scale(1)   # ±500 dps
+        set_accel_scale(3)  # ±16g
+        set_gyro_scale(3)   # ±2000 dps
 
         while True:
             accel = read_accel_data()
