@@ -1,7 +1,6 @@
 # icm42670.py
 
 from machine import I2C, Pin
-import math
 
 # ICM-42670-P I2C address
 ICM42670_I2C_ADDRESS = 0x69
@@ -11,10 +10,6 @@ ICM42670_WHO_AM_I = 0x75
 ICM42670_PWR_MGMT_1 = 0x1F
 ICM42670_ACCEL_CONFIG = 0x1C
 ICM42670_GYRO_CONFIG = 0x1B
-
-# Constants for unit conversion
-G_TO_MS2 = 9.81
-DEG_TO_RAD = math.pi / 180
 
 # Initialize I2C (SCL on GPIO 9, SDA on GPIO 8)
 i2c = I2C(0, scl=Pin(9), sda=Pin(8), freq=400000)
@@ -61,11 +56,11 @@ def read_accel_data():
     scale_factors = [2048.0, 1024.0, 512.0, 256.0]
     scale_factor = scale_factors[scale]
 
-    accel_x_ms2 = (accel_x / scale_factor) * G_TO_MS2
-    accel_y_ms2 = (accel_y / scale_factor) * G_TO_MS2
-    accel_z_ms2 = (accel_z / scale_factor) * G_TO_MS2
+    accel_x_g = accel_x / scale_factor
+    accel_y_g = accel_y / scale_factor
+    accel_z_g = accel_z / scale_factor
 
-    return (accel_x_ms2, accel_y_ms2, accel_z_ms2)
+    return (accel_x_g, accel_y_g, accel_z_g)
 
 def read_gyro_data():
     gyro_x = (read_register_int(0x11) << 8 | read_register_int(0x12))
@@ -80,8 +75,8 @@ def read_gyro_data():
     scale_factors = [131.0, 65.5, 32.8, 16.4]
     scale_factor = scale_factors[scale]
 
-    gyro_x_rad_s = (gyro_x / scale_factor) * DEG_TO_RAD
-    gyro_y_rad_s = (gyro_y / scale_factor) * DEG_TO_RAD
-    gyro_z_rad_s = (gyro_z / scale_factor) * DEG_TO_RAD
+    gyro_x_dps = gyro_x / scale_factor
+    gyro_y_dps = gyro_y / scale_factor
+    gyro_z_dps = gyro_z / scale_factor
 
-    return (gyro_x_rad_s, gyro_y_rad_s, gyro_z_rad_s)
+    return (gyro_x_dps, gyro_y_dps, gyro_z_dps)
