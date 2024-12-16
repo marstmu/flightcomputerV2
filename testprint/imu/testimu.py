@@ -8,7 +8,7 @@ def main():
 
         # Set accelerometer and gyroscope scales
         set_accel_scale(3)  # ±16g
-        set_gyro_scale(3)   # ±2000 dps
+        set_gyro_scale(1)   # ±500 dps
 
         while True:
             accel = read_accel_data()
