@@ -16,7 +16,7 @@ def main():
             
             print("Accel: X={:5.2f} m/s², Y={:5.2f} m/s², Z={:5.2f} m/s²".format(accel[0], accel[1], accel[2]))
             print("Gyro: X={:7.2f} rad/s, Y={:7.2f} rad/s, Z={:7.2f} rad/s".format(gyro[0], gyro[1], gyro[2]))
-            print("Temp: {:4.2f}°C".format((read_temp() / 128) + 25))
+            # print("Temp: {:4.2f}°C".format((read_temp() / 128) + 25))
             
             time.sleep(0.05)
     else:
