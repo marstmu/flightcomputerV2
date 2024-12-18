@@ -67,27 +67,37 @@ def main():
 
     # Configure IMU with specific scales
     configure_sensor()
-    set_accel_scale(3)  # ±16g
-    set_gyro_scale(1)   # ±500 dps
+    set_accel_scale(3) # ±16g
+    set_gyro_scale(1) # ±500 dps
 
     # Initialize logging
     data_dir = "logs"
     create_directory_if_needed(data_dir)
     log_file = initialize_log_file(data_dir)
+
     start_time = time.ticks_ms()
+    
+    # Initialize last valid GPS data
+    last_valid_gps = {
+        'latitude': 0.0,
+        'longitude': 0.0,
+        'altitude': 0.0,
+        'satellites': 0,
+        'status': 'invalid'
+    }
 
     try:
         CS = Pin(20, Pin.OUT)
         RESET = Pin(17, Pin.OUT)
         spi = SPI(0,
-                  baudrate=1000000,
-                  polarity=0,
-                  phase=0,
-                  bits=8,
-                  firstbit=SPI.MSB,
-                  sck=Pin(18),
-                  mosi=Pin(19),
-                  miso=Pin(16))
+            baudrate=1000000,
+            polarity=0,
+            phase=0,
+            bits=8,
+            firstbit=SPI.MSB,
+            sck=Pin(18),
+            mosi=Pin(19),
+            miso=Pin(16))
 
         rfm9x = RFM9x(spi, CS, RESET, 915.0)
         rfm9x.tx_power = 14
@@ -113,28 +123,25 @@ def main():
 
                 # Read GPS
                 gps_data = gps.read_gps()
-                gps_values = {
-                    'latitude': 0.0,
-                    'longitude': 0.0,
-                    'altitude': 0.0,
-                    'satellites': 0,
-                    'status': 'invalid'
-                }
+                current_gps = last_valid_gps.copy()
 
+                # Update GPS values if new valid data is available
                 if gps_data and gps_data['type'] == 'GPGGA' and gps_data['status'] == 'valid':
-                    gps_values = {
+                    current_gps.update({
                         'latitude': gps_data['latitude'],
                         'longitude': gps_data['longitude'],
                         'altitude': gps_data['altitude'],
                         'satellites': gps_data.get('satellites', 0),
                         'status': gps_data['status']
-                    }
+                    })
+                    last_valid_gps = current_gps.copy()
 
                 # Log data to CSV
-                log_sensor_data(log_file, elapsed_time, temperature, pressure, accel, gyro, mag, gps_values)
+                log_sensor_data(log_file, elapsed_time, temperature, pressure, 
+                              accel, gyro, mag, current_gps)
 
                 # Transmit data
-                data = encode_data(fuse.q, gps_values, pressure)
+                data = encode_data(fuse.q, current_gps, pressure)
                 if data is not None:
                     rfm9x.send(data)
                     print("Data packet sent")
@@ -150,4 +157,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
