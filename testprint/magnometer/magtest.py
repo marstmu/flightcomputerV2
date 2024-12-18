@@ -7,8 +7,14 @@ mmc = mmc5603.MMC5603(i2c)
 
 while True:
     mag_x, mag_y, mag_z = mmc.magnetic
-    print(f"X:{mag_x:.2f}, Y:{mag_y:.2f}, Z:{mag_z:.2f} uT")
+    
+    mz = -1 * mag_x
+    mx = mag_y
+    my = mag_z
+    
+    print(f"X:{mx:.2f}, Y:{my:.2f}, Z:{mz:.2f} uT")
     temp = mmc.temperature
     print(f"Temperature: {temp:.2f}°C")
     print()
     time.sleep(0.10)
+    
