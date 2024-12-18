@@ -58,7 +58,8 @@ def encode_data(quaternions, gps_data, pressure, rssi):
         format_string = '<4f2i3ffi'  # 4 quaternions, time, satellites, lat, lon, alt, pressure, rssi
         return struct.pack(format_string,
             quaternions[0], quaternions[1], quaternions[2], quaternions[3],
-            int(gps_data['time']), gps_data['satellites'],
+            int(float(gps_data['time'])),  # Fixed conversion
+            gps_data['satellites'],
             gps_data['latitude'], gps_data['longitude'], gps_data['altitude'],
             pressure, rssi)
     except Exception as e:
@@ -83,14 +84,14 @@ def main():
         CS = Pin(20, Pin.OUT)
         RESET = Pin(17, Pin.OUT)
         spi = SPI(0,
-            baudrate=1000000,
-            polarity=0,
-            phase=0,
-            bits=8,
-            firstbit=SPI.MSB,
-            sck=Pin(18),
-            mosi=Pin(19),
-            miso=Pin(16))
+                  baudrate=1000000,
+                  polarity=0,
+                  phase=0,
+                  bits=8,
+                  firstbit=SPI.MSB,
+                  sck=Pin(18),
+                  mosi=Pin(19),
+                  miso=Pin(16))
 
         rfm9x = RFM9x(spi, CS, RESET, 915.0)
         rfm9x.tx_power = 14
@@ -111,7 +112,7 @@ def main():
                 temperature = mmc.temperature
                 _, pressure = lps.get()
                 rssi = rfm9x.last_rssi
-                
+
                 fuse.update_nomag(accel, gyro)
 
                 # Initialize GPS values with defaults
