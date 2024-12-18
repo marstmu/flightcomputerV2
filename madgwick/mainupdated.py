@@ -1,6 +1,6 @@
 import time
 from lib.icm42670 import read_who_am_i, configure_sensor, read_accel_data, read_gyro_data, read_temp, set_accel_scale, set_gyro_scale
-from fusionmadgwickold import Fusion
+from lib.fusionmadgwick import Fusion
 import sys
 
 # Initialize Fusion object
