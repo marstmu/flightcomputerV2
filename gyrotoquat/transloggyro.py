@@ -20,6 +20,7 @@ i2c_magnetometer = I2C(0, sda=Pin(8), scl=Pin(9))
 lps = LPS22(i2c_barometer)
 mmc = mmc5603.MMC5603(i2c_magnetometer)
 
+# Initial magnetometer readings
 mag_x, mag_y, mag_z = mmc.magnetic
 mx = mag_y
 my = mag_z
@@ -56,11 +57,12 @@ def log_sensor_data(log_file, elapsed_time, temperature, pressure, accel, gyro, 
 
 def encode_data(quaternion, gps_data, pressure):
     try:
-        format_string = '<4f3ff'  # 4 quaternions, lat, lon, alt, pressure
+        format_string = '<4f3fif'  # 4 quaternions, lat, lon, alt, satellites (int), pressure
         return struct.pack(format_string,
-                         quaternion.w, quaternion.x, quaternion.y, quaternion.z,
-                         gps_data['latitude'], gps_data['longitude'], gps_data['altitude'],
-                         pressure)
+            quaternion.w, quaternion.x, quaternion.y, quaternion.z,
+            gps_data['latitude'], gps_data['longitude'], gps_data['altitude'],
+            gps_data['satellites'],
+            pressure)
     except Exception as e:
         print(f"Encoding error: {e}")
         return None
@@ -77,7 +79,7 @@ def main():
     data_dir = "logs"
     create_directory_if_needed(data_dir)
     log_file = initialize_log_file(data_dir)
-    
+
     start_time = time.ticks_ms()
     last_time = start_time
 
@@ -85,20 +87,20 @@ def main():
         CS = Pin(20, Pin.OUT)
         RESET = Pin(17, Pin.OUT)
         spi = SPI(0,
-                  baudrate=1000000,
-                  polarity=0,
-                  phase=0,
-                  bits=8,
-                  firstbit=SPI.MSB,
-                  sck=Pin(18),
-                  mosi=Pin(19),
-                  miso=Pin(16))
+            baudrate=1000000,
+            polarity=0,
+            phase=0,
+            bits=8,
+            firstbit=SPI.MSB,
+            sck=Pin(18),
+            mosi=Pin(19),
+            miso=Pin(16))
 
         rfm9x = RFM9x(spi, CS, RESET, 915.0)
         rfm9x.tx_power = 14
         rfm9x.signal_bandwidth = 500000
         rfm9x.coding_rate = 5
-        rfm9x.spreading_factor = 9
+        rfm9x.spreading_factor = 9  # Changed to match receiver
         rfm9x.enable_crc = True
 
         while True:
@@ -118,7 +120,6 @@ def main():
                 # Update orientation
                 madgwick.update(gyro, accel, dt)
                 smoothed_quaternion = maf.apply(madgwick.q)
-                #print("Quaternions before transmission:", smoothed_quaternion.w, smoothed_quaternion.x, smoothed_quaternion.y, smoothed_quaternion.z)
 
                 # Initialize GPS values with defaults
                 gps_values = {
@@ -176,4 +177,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
