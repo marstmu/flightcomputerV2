@@ -2,21 +2,19 @@ from micropython_rfm9x import *
 from machine import SPI, Pin
 import struct
 import time
-import sys
 
 def decode_data(data):
     try:
-        format_string = '<4f2i3ffi'  # 4 quaternions, time, satellites, lat, lon, alt, pressure, rssi
+        format_string = '<4fi3ffi'  # 4 quaternions, satellites, lat, lon, alt, pressure, rssi
         values = struct.unpack(format_string, data)
         return {
             'quaternions': values[0:4],
-            'gps_time': values[4],
-            'satellites': values[5],
-            'latitude': values[6],
-            'longitude': values[7],
-            'altitude': values[8],
-            'pressure': values[9],
-            'rssi': values[10]
+            'satellites': values[4],
+            'latitude': values[5],
+            'longitude': values[6],
+            'altitude': values[7],
+            'pressure': values[8],
+            'rssi': values[9]
         }
     except Exception as e:
         print(f"Decoding error: {e}")
@@ -51,7 +49,6 @@ try:
                 if data:
                     print("\nReceived Data:")
                     print(f"Quaternions: {data['quaternions']}")
-                    print(f"GPS Time: {data['gps_time']}")
                     print(f"Satellites: {data['satellites']}")
                     print(f"GPS: {data['latitude']}°, {data['longitude']}°")
                     print(f"Altitude: {data['altitude']} m")
