@@ -38,10 +38,10 @@ def initialize_log_file(data_dir):
         f.write("elapsed_time,temperature,pressure,accel_x,accel_y,accel_z,"
                 "gyro_x,gyro_y,gyro_z,mx,my,mz,gps_time,gps_date,gps_latitude,"
                 "gps_longitude,gps_altitude,gps_satellites,gps_quality,gps_speed,"
-                "gps_status,antenna_status\n")
+                "gps_status,antenna_status,rssi\n")
     return log_file
 
-def log_sensor_data(log_file, elapsed_time, temperature, pressure, accel, gyro, mag, gps_values):
+def log_sensor_data(log_file, elapsed_time, temperature, pressure, accel, gyro, mag, gps_values, rssi):
     with open(log_file, "a") as f:
         f.write(f"{elapsed_time:.3f},{temperature},{pressure},"
                 f"{accel[0]},{accel[1]},{accel[2]},"
@@ -51,15 +51,16 @@ def log_sensor_data(log_file, elapsed_time, temperature, pressure, accel, gyro, 
                 f"{gps_values['latitude']},{gps_values['longitude']},"
                 f"{gps_values['altitude']},{gps_values['satellites']},"
                 f"{gps_values['quality']},{gps_values['speed']},"
-                f"{gps_values['status']},{gps_values['antenna_status']}\n")
+                f"{gps_values['status']},{gps_values['antenna_status']},{rssi}\n")
 
-def encode_data(quaternions, gps_data, pressure):
+def encode_data(quaternions, gps_data, pressure, rssi):
     try:
-        format_string = '<4f3ff'  # 4 quaternions, lat, lon, alt, pressure
+        format_string = '<4f2i3ffi'  # 4 quaternions, time, satellites, lat, lon, alt, pressure, rssi
         return struct.pack(format_string,
-                         quaternions[0], quaternions[1], quaternions[2], quaternions[3],
-                         gps_data['latitude'], gps_data['longitude'], gps_data['altitude'],
-                         pressure)
+            quaternions[0], quaternions[1], quaternions[2], quaternions[3],
+            int(gps_data['time']), gps_data['satellites'],
+            gps_data['latitude'], gps_data['longitude'], gps_data['altitude'],
+            pressure, rssi)
     except Exception as e:
         print(f"Encoding error: {e}")
         return None
@@ -82,14 +83,14 @@ def main():
         CS = Pin(20, Pin.OUT)
         RESET = Pin(17, Pin.OUT)
         spi = SPI(0,
-                  baudrate=1000000,
-                  polarity=0,
-                  phase=0,
-                  bits=8,
-                  firstbit=SPI.MSB,
-                  sck=Pin(18),
-                  mosi=Pin(19),
-                  miso=Pin(16))
+            baudrate=1000000,
+            polarity=0,
+            phase=0,
+            bits=8,
+            firstbit=SPI.MSB,
+            sck=Pin(18),
+            mosi=Pin(19),
+            miso=Pin(16))
 
         rfm9x = RFM9x(spi, CS, RESET, 915.0)
         rfm9x.tx_power = 14
@@ -109,7 +110,8 @@ def main():
                 mag = mmc.magnetic
                 temperature = mmc.temperature
                 _, pressure = lps.get()
-
+                rssi = rfm9x.last_rssi
+                
                 fuse.update_nomag(accel, gyro)
 
                 # Initialize GPS values with defaults
@@ -148,11 +150,11 @@ def main():
                         gps_values['antenna_status'] = gps_data['antenna_status']
 
                 # Log data
-                log_sensor_data(log_file, elapsed_time, temperature, pressure, 
-                              accel, gyro, mag, gps_values)
+                log_sensor_data(log_file, elapsed_time, temperature, pressure,
+                              accel, gyro, mag, gps_values, rssi)
 
                 # Transmit data
-                data = encode_data(fuse.q, gps_values, pressure)
+                data = encode_data(fuse.q, gps_values, pressure, rssi)
                 if data is not None:
                     rfm9x.send(data)
                     print("Data packet sent")
