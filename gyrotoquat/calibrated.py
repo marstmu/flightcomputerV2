@@ -26,10 +26,18 @@ class Quaternion:
             self.y /= norm
             self.z /= norm
 
+def filter_gyro(gyro_data, threshold=0.3):
+    filtered_gyro = list(gyro_data)
+    for i in range(3):
+        if abs(filtered_gyro[i]) < threshold:
+            filtered_gyro[i] = 0.0
+    return filtered_gyro
+
 def update_quaternion(q, gyro, dt):
-    gx = gyro[0] * pi / 45.0
-    gy = gyro[1] * pi / 45.0
-    gz = gyro[2] * pi / 45.0
+    filtered = filter_gyro(gyro)
+    gx = filtered[0] * pi / 45.0
+    gy = filtered[1] * pi / 45.0
+    gz = filtered[2] * pi / 45.0
     
     dq = Quaternion(1.0, gx*dt, gy*dt, gz*dt)
     q_new = q * dq
@@ -64,5 +72,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-
 
