@@ -6,17 +6,16 @@ import sys
 
 def decode_data(data):
     try:
-        format_string = '<4f2i3ffi'  # 4 quaternions, time, satellites, lat, lon, alt, pressure, rssi
+        format_string = '<4fi3ffi'  # 4 quaternions, satellites, lat, lon, alt, pressure, rssi
         values = struct.unpack(format_string, data)
         return {
             'quaternions': values[0:4],
-            'gps_time': values[4],
-            'satellites': values[5],
-            'latitude': values[6],
-            'longitude': values[7],
-            'altitude': values[8],
-            'pressure': values[9],
-            'rssi': values[10]
+            'satellites': values[4],
+            'latitude': values[5],
+            'longitude': values[6],
+            'altitude': values[7],
+            'pressure': values[8],
+            'rssi': values[9]
         }
     except Exception as e:
         print(f"Decoding error: {e}")
@@ -48,7 +47,7 @@ try:
             if packet is not None:
                 data = decode_data(packet)
                 if data:
-                    output = f"{data['quaternions'][0]},{data['quaternions'][1]},{data['quaternions'][2]},{data['quaternions'][3]},{data['gps_time']},{data['satellites']},{data['longitude']},{data['latitude']},{data['altitude']},{data['pressure']},{data['rssi']}\n"
+                    output = f"{data['quaternions'][0]},{data['quaternions'][1]},{data['quaternions'][2]},{data['quaternions'][3]},{data['satellites']},{data['longitude']},{data['latitude']},{data['altitude']},{data['pressure']},{data['rssi']}\n"
                     sys.stdout.write(output)
             time.sleep(0.1)
         except Exception as e:
