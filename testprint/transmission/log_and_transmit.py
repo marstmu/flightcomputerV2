@@ -55,10 +55,9 @@ def log_sensor_data(log_file, elapsed_time, temperature, pressure, accel, gyro, 
 
 def encode_data(quaternions, gps_data, pressure, rssi):
     try:
-        format_string = '<4f2i3ffi'  # 4 quaternions, time, satellites, lat, lon, alt, pressure, rssi
+        format_string = '<4fi3ffi'  # 4 quaternions, satellites, lat, lon, alt, pressure, rssi
         return struct.pack(format_string,
             quaternions[0], quaternions[1], quaternions[2], quaternions[3],
-            int(float(gps_data['time'])),  # Fixed conversion
             gps_data['satellites'],
             gps_data['latitude'], gps_data['longitude'], gps_data['altitude'],
             pressure, rssi)
