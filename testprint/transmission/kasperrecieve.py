@@ -1,18 +1,22 @@
-from lib.micropython_rfm9x import *
+# receiver-1.py
+from micropython_rfm9x import *
 from machine import SPI, Pin
 import struct
 import time
+import sys
 
 def decode_data(data):
     try:
-        format_string = '<4f3ff'  # 4 quaternions, lat, lon, alt, pressure
+        format_string = '<4f2i3ff'  # 4 quaternions, time, satellites, lat, lon, alt, pressure
         values = struct.unpack(format_string, data)
         return {
             'quaternions': values[0:4],
-            'latitude': values[4],
-            'longitude': values[5],
-            'altitude': values[6],
-            'pressure': values[7]
+            'gps_time': values[4],
+            'satellites': values[5],
+            'latitude': values[6],
+            'longitude': values[7],
+            'altitude': values[8],
+            'pressure': values[9]
         }
     except Exception as e:
         print(f"Decoding error: {e}")
@@ -38,22 +42,17 @@ try:
     rfm9x.spreading_factor = 9
     rfm9x.enable_crc = True
 
-    print("Waiting for data packets...")
-
     while True:
         try:
             packet = rfm9x.receive(timeout=5.0)
             if packet is not None:
                 data = decode_data(packet)
                 if data:
-                    q = data['quaternions']
-                    output = f"{q[0]},{q[1]},{q[2]},{q[3]},{data['longitude']},{data['latitude']},{data['altitude']},{data['pressure']},{rfm9x.last_rssi}\r\n"
-                    print(output, end='')
+                    output = f"{data['quaternions'][0]},{data['quaternions'][1]},{data['quaternions'][2]},{data['quaternions'][3]},{data['gps_time']},{data['satellites']},{data['longitude']},{data['latitude']},{data['altitude']},{data['pressure']},{rfm9x.last_rssi}\n"
+                    sys.stdout.write(output)
             time.sleep(0.1)
-
         except Exception as e:
             print(f"Reception error: {e}")
             time.sleep(1)
-
 except Exception as e:
     print(f"Initialization error: {e}")
