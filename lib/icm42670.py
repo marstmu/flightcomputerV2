@@ -57,8 +57,8 @@ def read_accel_data():
     scale_factor = scale_factors[scale]
 
     accel_x_g = accel_x / scale_factor
-    accel_y_g = accel_y / scale_factor
-    accel_z_g = accel_z / scale_factor
+    accel_y_g = -1 * accel_z / scale_factor
+    accel_z_g = accel_y / scale_factor
 
     return (accel_x_g, accel_y_g, accel_z_g)
 
@@ -76,7 +76,7 @@ def read_gyro_data():
     scale_factor = scale_factors[scale]
 
     gyro_x_dps = gyro_x / scale_factor
-    gyro_y_dps = gyro_y / scale_factor
-    gyro_z_dps = gyro_z / scale_factor
+    gyro_y_dps = -1 * gyro_z / scale_factor
+    gyro_z_dps = gyro_y / scale_factor
 
     return (gyro_x_dps, gyro_y_dps, gyro_z_dps)
