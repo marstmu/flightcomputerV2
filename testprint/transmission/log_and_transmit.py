@@ -20,7 +20,6 @@ lps = LPS22(i2c_barometer)
 mmc = mmc5603.MMC5603(i2c_magnetometer)
 
 mag_x, mag_y, mag_z = mmc.magnetic
-
 mx = mag_y
 my = mag_z
 mz = -1 * mag_x
@@ -36,20 +35,26 @@ def create_directory_if_needed(directory):
 def initialize_log_file(data_dir):
     log_file = f"{data_dir}/sensor_log.csv"
     with open(log_file, "w") as f:
-        f.write("elapsed_time,temperature,pressure,accel_x,accel_y,accel_z,gyro_x,gyro_y,gyro_z,mx,my,mz\n")
+        f.write("elapsed_time,temperature,pressure,accel_x,accel_y,accel_z,gyro_x,gyro_y,gyro_z,mx,my,mz,gps_latitude,gps_longitude,gps_altitude,gps_satellites,gps_status\n")
     return log_file
 
-def log_sensor_data(log_file, elapsed_time, temperature, pressure, accel, gyro, mag):
+def log_sensor_data(log_file, elapsed_time, temperature, pressure, accel, gyro, mag, gps_values):
     with open(log_file, "a") as f:
-        f.write(f"{elapsed_time:.3f},{temperature},{pressure},{accel[0]},{accel[1]},{accel[2]},{gyro[0]},{gyro[1]},{gyro[2]},{mag[0]},{mag[1]},{mag[2]}\n")
+        f.write(f"{elapsed_time:.3f},{temperature},{pressure},"
+                f"{accel[0]},{accel[1]},{accel[2]},"
+                f"{gyro[0]},{gyro[1]},{gyro[2]},"
+                f"{mag[0]},{mag[1]},{mag[2]},"
+                f"{gps_values['latitude']},{gps_values['longitude']},"
+                f"{gps_values['altitude']},{gps_values['satellites']},"
+                f"{gps_values['status']}\n")
 
 def encode_data(quaternions, gps_data, pressure):
     try:
         format_string = '<4f3ff'  # 4 quaternions, lat, lon, alt, pressure
         return struct.pack(format_string,
-            quaternions[0], quaternions[1], quaternions[2], quaternions[3],
-            gps_data['latitude'], gps_data['longitude'], gps_data['altitude'],
-            pressure)
+                         quaternions[0], quaternions[1], quaternions[2], quaternions[3],
+                         gps_data['latitude'], gps_data['longitude'], gps_data['altitude'],
+                         pressure)
     except Exception as e:
         print(f"Encoding error: {e}")
         return None
@@ -63,7 +68,7 @@ def main():
     configure_sensor()
     set_accel_scale(3)  # ±16g
     set_gyro_scale(1)   # ±500 dps
-    
+
     # Initialize logging
     data_dir = "logs"
     create_directory_if_needed(data_dir)
@@ -74,14 +79,14 @@ def main():
         CS = Pin(20, Pin.OUT)
         RESET = Pin(17, Pin.OUT)
         spi = SPI(0,
-            baudrate=1000000,
-            polarity=0,
-            phase=0,
-            bits=8,
-            firstbit=SPI.MSB,
-            sck=Pin(18),
-            mosi=Pin(19),
-            miso=Pin(16))
+                  baudrate=1000000,
+                  polarity=0,
+                  phase=0,
+                  bits=8,
+                  firstbit=SPI.MSB,
+                  sck=Pin(18),
+                  mosi=Pin(19),
+                  miso=Pin(16))
 
         rfm9x = RFM9x(spi, CS, RESET, 915.0)
         rfm9x.tx_power = 14
@@ -101,30 +106,38 @@ def main():
                 mag = mmc.magnetic
                 temperature = mmc.temperature
                 _, pressure = lps.get()
-                
+
                 # Update fusion without magnetometer data
                 fuse.update_nomag(accel, gyro)
-                
+
                 # Read GPS
                 gps_data = gps.read_gps()
-                gps_values = {'latitude': 0.0, 'longitude': 0.0, 'altitude': 0.0}
-                
+                gps_values = {
+                    'latitude': 0.0,
+                    'longitude': 0.0,
+                    'altitude': 0.0,
+                    'satellites': 0,
+                    'status': 'invalid'
+                }
+
                 if gps_data and gps_data['type'] == 'GPGGA' and gps_data['status'] == 'valid':
                     gps_values = {
                         'latitude': gps_data['latitude'],
                         'longitude': gps_data['longitude'],
-                        'altitude': gps_data['altitude']
+                        'altitude': gps_data['altitude'],
+                        'satellites': gps_data.get('satellites', 0),
+                        'status': gps_data['status']
                     }
-                
+
                 # Log data to CSV
-                log_sensor_data(log_file, elapsed_time, temperature, pressure, accel, gyro, mag)
-                
+                log_sensor_data(log_file, elapsed_time, temperature, pressure, accel, gyro, mag, gps_values)
+
                 # Transmit data
                 data = encode_data(fuse.q, gps_values, pressure)
                 if data is not None:
                     rfm9x.send(data)
                     print("Data packet sent")
-                
+
                 time.sleep(0.05)
 
             except Exception as e:
@@ -136,4 +149,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
