@@ -2,7 +2,7 @@ from machine import UART, Pin
 import time
 
 class L86GPS:
-    def __init__(self, uart_id=1, tx_pin=0, rx_pin=1):
+    def __init__(self, uart_id=0, tx_pin=0, rx_pin=1):
         # Default baudrate is 9600 according to datasheet
         self.uart = UART(uart_id, baudrate=9600, tx=Pin(tx_pin), rx=Pin(rx_pin))
         self.init_module()
