@@ -13,6 +13,13 @@ gps = L86GPS()
 i2c = I2C(0, scl=Pin(9), sda=Pin(8))
 lps = LPS22(i2c)
 
+# Store last valid GPS reading
+last_valid_gps = {
+    'latitude': 0.0,
+    'longitude': 0.0,
+    'altitude': 0.0
+}
+
 def encode_data(quaternions, gps_data, pressure):
     try:
         format_string = '<4f3ff'  # 4 quaternions, lat, lon, alt, pressure
@@ -25,12 +32,14 @@ def encode_data(quaternions, gps_data, pressure):
         return None
 
 def main():
+    global last_valid_gps
+    
     if read_who_am_i() != 0x67:
         print("ICM-42670-P not found.")
         return
-    
+
     configure_sensor()
-    
+
     try:
         CS = Pin(20, Pin.OUT)
         RESET = Pin(17, Pin.OUT)
@@ -43,7 +52,7 @@ def main():
             sck=Pin(18),
             mosi=Pin(19),
             miso=Pin(16))
-        
+
         rfm9x = RFM9x(spi, CS, RESET, 915.0)
         rfm9x.tx_power = 14
         rfm9x.signal_bandwidth = 500000
@@ -56,33 +65,33 @@ def main():
                 accel = read_accel_data()
                 gyro = read_gyro_data()
                 fuse.update_nomag(accel, gyro)
-
-                gps_data = gps.read_gps()
-                gps_values = {'latitude': 0.0, 'longitude': 0.0, 'altitude': 0.0}
                 
+                # Read new GPS data
+                gps_data = gps.read_gps()
+                
+                # Update last_valid_gps if new reading is valid
                 if gps_data and gps_data['type'] == 'GPGGA' and gps_data['status'] == 'valid':
-                    gps_values = {
+                    last_valid_gps = {
                         'latitude': gps_data['latitude'],
                         'longitude': gps_data['longitude'],
                         'altitude': gps_data['altitude']
                     }
 
                 _, pressure = lps.get()
-                data = encode_data(fuse.q, gps_values, pressure)
+                data = encode_data(fuse.q, last_valid_gps, pressure)
                 
                 if data is not None:
                     rfm9x.send(data)
                     print("Data packet sent")
                 
                 time.sleep(0.05)
-
+                
             except Exception as e:
                 print(f"Loop error: {e}")
                 time.sleep(1)
-
+                
     except Exception as e:
         print(f"Radio initialization error: {e}")
 
 if __name__ == "__main__":
     main()
-
