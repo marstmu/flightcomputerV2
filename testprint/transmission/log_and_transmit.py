@@ -19,6 +19,12 @@ i2c_magnetometer = I2C(0, sda=Pin(8), scl=Pin(9))
 lps = LPS22(i2c_barometer)
 mmc = mmc5603.MMC5603(i2c_magnetometer)
 
+mag_x, mag_y, mag_z = mmc.magnetic
+
+mx = mag_y
+my = mag_z
+mz = -1 * mag_x
+
 def create_directory_if_needed(directory):
     try:
         if directory not in os.listdir("/"):
@@ -30,7 +36,7 @@ def create_directory_if_needed(directory):
 def initialize_log_file(data_dir):
     log_file = f"{data_dir}/sensor_log.csv"
     with open(log_file, "w") as f:
-        f.write("elapsed_time,temperature,pressure,accel_x,accel_y,accel_z,gyro_x,gyro_y,gyro_z,mag_x,mag_y,mag_z\n")
+        f.write("elapsed_time,temperature,pressure,accel_x,accel_y,accel_z,gyro_x,gyro_y,gyro_z,mx,my,mz\n")
     return log_file
 
 def log_sensor_data(log_file, elapsed_time, temperature, pressure, accel, gyro, mag):
