@@ -1,18 +1,23 @@
 from lib.micropython_rfm9x import *
 from machine import SPI, Pin, I2C
 import struct
-from lib.icm42670 import read_who_am_i, configure_sensor, read_accel_data, read_gyro_data
-from fusionmadgwick import Fusion
+from lib.icm42670 import read_who_am_i, configure_sensor, read_accel_data, read_gyro_data, set_accel_scale, set_gyro_scale
+from lib.fusionmadgwick import Fusion
 from lib.l86gps import L86GPS
 from lib.lps22 import LPS22
+from micropython_mmc5603 import mmc5603
 import time
 import os
 
 # Initialize sensors
 fuse = Fusion()
 gps = L86GPS()
-i2c = I2C(0, scl=Pin(9), sda=Pin(8))
-lps = LPS22(i2c)
+
+# Initialize I2C buses
+i2c_barometer = I2C(0, scl=Pin(9), sda=Pin(8))
+i2c_magnetometer = I2C(0, sda=Pin(8), scl=Pin(9))
+lps = LPS22(i2c_barometer)
+mmc = mmc5603.MMC5603(i2c_magnetometer)
 
 def create_directory_if_needed(directory):
     try:
@@ -28,10 +33,9 @@ def initialize_log_file(data_dir):
         f.write("elapsed_time,temperature,pressure,accel_x,accel_y,accel_z,gyro_x,gyro_y,gyro_z,mag_x,mag_y,mag_z\n")
     return log_file
 
-def log_sensor_data(log_file, elapsed_time, pressure, accel, gyro):
+def log_sensor_data(log_file, elapsed_time, temperature, pressure, accel, gyro, mag):
     with open(log_file, "a") as f:
-        # Assuming temperature is not available, using 0
-        f.write(f"{elapsed_time},{0},{pressure},{accel[0]},{accel[1]},{accel[2]},{gyro[0]},{gyro[1]},{gyro[2]},0,0,0\n")
+        f.write(f"{elapsed_time:.3f},{temperature},{pressure},{accel[0]},{accel[1]},{accel[2]},{gyro[0]},{gyro[1]},{gyro[2]},{mag[0]},{mag[1]},{mag[2]}\n")
 
 def encode_data(quaternions, gps_data, pressure):
     try:
@@ -49,7 +53,10 @@ def main():
         print("ICM-42670-P not found.")
         return
 
+    # Configure IMU with specific scales
     configure_sensor()
+    set_accel_scale(3)  # ±16g
+    set_gyro_scale(1)   # ±500 dps
     
     # Initialize logging
     data_dir = "logs"
@@ -82,10 +89,17 @@ def main():
                 current_time = time.ticks_ms()
                 elapsed_time = time.ticks_diff(current_time, start_time) / 1000
 
+                # Read all sensors
                 accel = read_accel_data()
                 gyro = read_gyro_data()
+                mag = mmc.magnetic
+                temperature = mmc.temperature
+                _, pressure = lps.get()
+                
+                # Update fusion without magnetometer data
                 fuse.update_nomag(accel, gyro)
                 
+                # Read GPS
                 gps_data = gps.read_gps()
                 gps_values = {'latitude': 0.0, 'longitude': 0.0, 'altitude': 0.0}
                 
@@ -95,11 +109,9 @@ def main():
                         'longitude': gps_data['longitude'],
                         'altitude': gps_data['altitude']
                     }
-
-                _, pressure = lps.get()
                 
                 # Log data to CSV
-                log_sensor_data(log_file, elapsed_time, pressure, accel, gyro)
+                log_sensor_data(log_file, elapsed_time, temperature, pressure, accel, gyro, mag)
                 
                 # Transmit data
                 data = encode_data(fuse.q, gps_values, pressure)
@@ -118,3 +130,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
