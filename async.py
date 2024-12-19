@@ -165,7 +165,7 @@ async def main():
         rfm9x.tx_power = 14
         rfm9x.signal_bandwidth = 500000
         rfm9x.coding_rate = 5
-        rfm9x.spreading_factor = 7
+        rfm9x.spreading_factor = 9
         rfm9x.enable_crc = True
 
         # Create and run tasks
