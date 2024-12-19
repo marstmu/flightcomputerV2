@@ -1,18 +1,20 @@
-from lib.micropython_rfm9x import *
+from micropython_rfm9x import *
 from machine import SPI, Pin
 import struct
 import time
+import sys
 
 def decode_data(data):
     try:
-        format_string = '<4f3ff'  # 4 quaternions, lat, lon, alt, pressure
+        format_string = '<4f3fif'  # 4 quaternions, lat, lon, alt, satellites (int), pressure
         values = struct.unpack(format_string, data)
         return {
             'quaternions': values[0:4],
             'latitude': values[4],
             'longitude': values[5],
             'altitude': values[6],
-            'pressure': values[7]
+            'satellites': values[7],
+            'pressure': values[8]
         }
     except Exception as e:
         print(f"Decoding error: {e}")
@@ -47,10 +49,8 @@ try:
                 data = decode_data(packet)
                 if data:
                     q = data['quaternions']
-                    output = f"{q[0]},{q[1]},{q[2]},{q[3]},{data['longitude']},{data['latitude']},{data['altitude']},{data['pressure']},{rfm9x.last_rssi}\r\n"
-                    print(output, end='')
+                    sys.stdout.write(f"{q[0]},{q[1]},{q[2]},{q[3]},{data['longitude']},{data['latitude']},{data['altitude']},{data['satellites']},{data['pressure']},{rfm9x.last_rssi}\n")
             time.sleep(0.1)
-
         except Exception as e:
             print(f"Reception error: {e}")
             time.sleep(1)
